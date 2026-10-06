@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="theme-color" content="#080b12">
+<title>TAP Console</title>
+
+<style>
+:root{
+  --bg:#080b12;
+  --panel:#101621;
+  --panel2:#151d2a;
+  --line:#293344;
+  --text:#f3f6fb;
+  --muted:#8e9aac;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  min-height:100vh;
+  background:linear-gradient(180deg,#080b12,#0d121b);
+  color:var(--text);
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+
+main{
+  width:min(760px,100%);
+  margin:auto;
+  padding:20px 16px 100px;
+}
+
+header{
+  padding:12px 4px 22px;
+}
+
+h1{
+  margin:0;
+  font-size:30px;
+  letter-spacing:.12em;
+}
+
+.subtitle{
+  color:var(--muted);
+  margin-top:5px;
+}
+
+.section{
+  margin:18px 0;
+}
+
+.section-title{
+  color:var(--muted);
+  font-size:12px;
+  letter-spacing:.16em;
+  margin:0 0 10px 3px;
+}
+
+.item{
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:13px;
+  padding:14px;
+  margin:7px 0;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:var(--panel);
+  color:var(--text);
+  cursor:pointer;
+  text-align:left;
+  font:inherit;
+}
+
+.item:hover{
+  border-color:#536174;
+  background:var(--panel2);
+}
+
+.icon{
+  width:32px;
+  text-align:center;
+  font-size:23px;
+}
+
+.name{
+  font-weight:650;
+}
+
+.meta{
+  margin-top:3px;
+  color:var(--muted);
+  font-size:12px;
+}
+
+.empty{
+  color:var(--muted);
+  padding:14px 4px;
+  line-height:1.5;
+}
+
+.player{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  background:#0c111a;
+  border-top:1px solid var(--line);
+  padding:10px 14px;
+  z-index:10;
+}
+
+.player-inner{
+  width:min(760px,100%);
+  margin:auto;
+}
+
+.now{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.now-icon{
+  font-size:22px;
+}
+
+.now-name{
+  font-weight:650;
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+
+.controls{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-top:8px;
+}
+
+button{
+  border:1px solid var(--line);
+  background:#182130;
+  color:var(--text);
+  border-radius:10px;
+  padding:9px 13px;
+  font:inherit;
+  cursor:pointer;
+}
+
+button:hover{
+  border-color:#536174;
+}
+
+.play{
+  min-width:48px;
+}
+
+audio{
+  display:none;
+}
+
+.small{
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.5;
+}
+</style>
+</head>
+
+<body>
+
+<main>
+
+<header>
+  <h1>TAP</h1>
+  <div class="subtitle">Console</div>
+</header>
+
+<!-- =========================
+     CARTRIDGES
+========================= -->
+
+<section class="section">
+
+  <div class="section-title">CARTRIDGES</div>
+
+  <div id="cartridges">
+    <div class="empty">
+      No cartridges loaded.
+    </div>
+  </div>
+
+</section>
+
+
+<!-- =========================
+     MUSIC
+========================= -->
+
+<section class="section">
+
+  <div class="section-title">MUSIC</div>
+
+  <div id="music">
+    <div class="empty">
+      Loading music library...
+    </div>
+  </div>
+
+</section>
+
+</main>
+
+
+<!-- =========================
+     MUSIC PLAYER
+========================= -->
+
+<div class="player">
+
+  <div class="player-inner">
+
+    <div class="now">
+      <div class="now-icon">🎵</div>
+      <div id="nowPlaying" class="now-name">
+        Nothing playing
+      </div>
+    </div>
+
+    <div class="controls">
+
+      <button onclick="previousTrack()">◀</button>
+
+      <button
+        id="playButton"
+        class="play"
+        onclick="togglePlay()">
+        ▶
+      </button>
+
+      <button onclick="nextTrack()">▶</button>
+
+      <button onclick="stopTrack()">■</button>
+
+    </div>
+
+    <audio id="audio" preload="metadata"></audio>
+
+  </div>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   TAP MUSIC
+========================================================= */
+
+const audio = document.getElementById("audio");
+const musicContainer = document.getElementById("music");
+const nowPlaying = document.getElementById("nowPlaying");
+const playButton = document.getElementById("playButton");
+
+let musicTracks = [];
+let currentTrack = -1;
+
+
+/* ---------------------------------------------------------
+   MUSIC MANIFEST
+
+   Create:
+
+   /music/manifest.json
+
+   Example:
+
+   [
+     "my-song.mp3",
+     "storm-run.mp3",
+     "night-drive.mp3"
+   ]
+--------------------------------------------------------- */
+
+async function loadMusic(){
+
+  try{
+
+    const response =
+      await fetch("music/manifest.json", {
+        cache:"no-store"
+      });
+
+    if(!response.ok)
+      throw new Error("No manifest");
+
+    const names = await response.json();
+
+    if(!Array.isArray(names))
+      throw new Error("Invalid manifest");
+
+    musicTracks = names
+      .filter(name => typeof name === "string")
+      .map(name => ({
+        name:name,
+        url:"music/" + encodeURIComponent(name)
+      }));
+
+    renderMusic();
+
+  }catch(error){
+
+    musicContainer.innerHTML = `
+      <div class="empty">
+        No music loaded.<br><br>
+
+        Add your songs to:
+        <b>/music/</b>
+
+        <br><br>
+
+        Then create:
+        <b>/music/manifest.json</b>
+
+        <br><br>
+
+        Example:
+        <br><br>
+
+        <code>
+        ["song1.mp3","song2.mp3"]
+        </code>
+      </div>
+    `;
+
+  }
+
+}
+
+
+/* ---------------------------------------------------------
+   DISPLAY MUSIC
+--------------------------------------------------------- */
+
+function renderMusic(){
+
+  if(!musicTracks.length){
+
+    musicContainer.innerHTML =
+      `<div class="empty">
+        No songs in library.
+      </div>`;
+
+    return;
+  }
+
+  musicContainer.innerHTML = "";
+
+  musicTracks.forEach((track,index)=>{
+
+    const button =
+      document.createElement("button");
+
+    button.className = "item";
+
+    button.innerHTML = `
+      <span class="icon">🎵</span>
+
+      <span>
+        <div class="name"></div>
+        <div class="meta">
+          TAP Music Track ${index + 1}
+        </div>
+      </span>
+    `;
+
+    button.querySelector(".name")
+      .textContent =
+      cleanName(track.name);
+
+    button.onclick =
+      () => playTrack(index);
+
+    musicContainer.appendChild(button);
+
+  });
+
+}
+
+
+/* ---------------------------------------------------------
+   CLEAN FILE NAME
+--------------------------------------------------------- */
+
+function cleanName(name){
+
+  return name
+    .replace(/\.[^/.]+$/,"")
+    .replace(/[_-]+/g," ")
+    .replace(/\s+/g," ")
+    .trim();
+
+}
+
+
+/* ---------------------------------------------------------
+   PLAY TRACK
+--------------------------------------------------------- */
+
+function playTrack(index){
+
+  if(index < 0 || index >= musicTracks.length)
+    return;
+
+  currentTrack = index;
+
+  const track = musicTracks[index];
+
+  audio.src = track.url;
+
+  nowPlaying.textContent =
+    cleanName(track.name);
+
+  audio.play()
+    .catch(error=>{
+      console.log("Playback requires user interaction.");
+    });
+
+}
+
+
+/* ---------------------------------------------------------
+   PLAY / PAUSE
+--------------------------------------------------------- */
+
+function togglePlay(){
+
+  if(currentTrack === -1){
+
+    if(musicTracks.length){
+
+      playTrack(0);
+
+    }
+
+    return;
+  }
+
+  if(audio.paused){
+
+    audio.play();
+
+  }else{
+
+    audio.pause();
+
+  }
+
+}
+
+
+/* ---------------------------------------------------------
+   NEXT
+--------------------------------------------------------- */
+
+function nextTrack(){
+
+  if(!musicTracks.length)
+    return;
+
+  let next =
+    currentTrack + 1;
+
+  if(next >= musicTracks.length)
+    next = 0;
+
+  playTrack(next);
+
+}
+
+
+/* ---------------------------------------------------------
+   PREVIOUS
+--------------------------------------------------------- */
+
+function previousTrack(){
+
+  if(!musicTracks.length)
+    return;
+
+  let previous =
+    currentTrack - 1;
+
+  if(previous < 0)
+    previous = musicTracks.length - 1;
+
+  playTrack(previous);
+
+}
+
+
+/* ---------------------------------------------------------
+   STOP
+--------------------------------------------------------- */
+
+function stopTrack(){
+
+  audio.pause();
+
+  audio.currentTime = 0;
+
+}
+
+
+/* ---------------------------------------------------------
+   PLAYER STATE
+--------------------------------------------------------- */
+
+audio.addEventListener(
+  "play",
+  ()=>{
+    playButton.textContent = "Ⅱ";
+  }
+);
+
+audio.addEventListener(
+  "pause",
+  ()=>{
+    playButton.textContent = "▶";
+  }
+);
+
+audio.addEventListener(
+  "ended",
+  ()=>{
+    nextTrack();
+  }
+);
+
+
+/* =========================================================
+   CARTRIDGE LOADER
+=========================================================
+
+   This is intentionally kept separate from TAP Music.
+
+   Your existing cartridge system can populate:
+
+   #cartridges
+
+   without changing the music system.
+========================================================= */
+
+
+/* Example cartridge API */
+
+function registerCartridge(name,description,launch){
+
+  const container =
+    document.getElementById("cartridges");
+
+  const empty =
+    container.querySelector(".empty");
+
+  if(empty)
+    empty.remove();
+
+  const button =
+    document.createElement("button");
+
+  button.className = "item";
+
+  button.innerHTML = `
+    <span class="icon">🎮</span>
+
+    <span>
+      <div class="name"></div>
+      <div class="meta"></div>
+    </span>
+  `;
+
+  button.querySelector(".name")
+    .textContent = name;
+
+  button.querySelector(".meta")
+    .textContent = description || "TAP Cartridge";
+
+  button.onclick = launch;
+
+  container.appendChild(button);
+
+}
+
+
+/* =========================================================
+   START
+========================================================= */
+
+loadMusic();
+
+</script>
+
+</body>
+</html>
