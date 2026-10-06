@@ -29,7 +29,7 @@ body{
 main{
   width:min(760px,100%);
   margin:auto;
-  padding:20px 16px 100px;
+  padding:20px 16px 130px;
 }
 
 header{
@@ -79,10 +79,16 @@ h1{
   background:var(--panel2);
 }
 
+.item.active{
+  border-color:#7e91ad;
+  background:var(--panel2);
+}
+
 .icon{
   width:32px;
   text-align:center;
   font-size:23px;
+  flex:none;
 }
 
 .name{
@@ -95,10 +101,45 @@ h1{
   font-size:12px;
 }
 
+.track-info{
+  min-width:0;
+  flex:1;
+}
+
+.track-actions{
+  display:flex;
+  gap:6px;
+  flex:none;
+}
+
+.track-actions button{
+  padding:7px 9px;
+  font-size:12px;
+}
+
 .empty{
   color:var(--muted);
   padding:14px 4px;
   line-height:1.5;
+}
+
+button{
+  border:1px solid var(--line);
+  background:#182130;
+  color:var(--text);
+  border-radius:10px;
+  padding:9px 13px;
+  font:inherit;
+  cursor:pointer;
+}
+
+button:hover{
+  border-color:#536174;
+}
+
+button:disabled{
+  opacity:.45;
+  cursor:not-allowed;
 }
 
 .player{
@@ -141,20 +182,6 @@ h1{
   margin-top:8px;
 }
 
-button{
-  border:1px solid var(--line);
-  background:#182130;
-  color:var(--text);
-  border-radius:10px;
-  padding:9px 13px;
-  font:inherit;
-  cursor:pointer;
-}
-
-button:hover{
-  border-color:#536174;
-}
-
 .play{
   min-width:48px;
 }
@@ -168,6 +195,125 @@ audio{
   font-size:12px;
   line-height:1.5;
 }
+
+.analyzer{
+  display:none;
+  margin-top:12px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:#0d131d;
+  padding:14px;
+}
+
+.analyzer.open{
+  display:block;
+}
+
+.analyzer-title{
+  font-weight:700;
+  margin-bottom:10px;
+}
+
+.analyzer-status{
+  color:var(--muted);
+  font-size:13px;
+  margin:8px 0;
+}
+
+.stats{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:8px;
+  margin:12px 0;
+}
+
+.stat{
+  background:var(--panel2);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:10px;
+}
+
+.stat-label{
+  color:var(--muted);
+  font-size:11px;
+  letter-spacing:.08em;
+}
+
+.stat-value{
+  font-size:19px;
+  margin-top:3px;
+}
+
+.energy{
+  margin:12px 0;
+}
+
+.energy-bar{
+  width:100%;
+  height:9px;
+  border-radius:20px;
+  background:#202938;
+  overflow:hidden;
+}
+
+.energy-fill{
+  height:100%;
+  width:0%;
+  background:#dce8ff;
+  transition:width .2s;
+}
+
+.map-box{
+  background:#080b12;
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:10px;
+  max-height:260px;
+  overflow:auto;
+  margin-top:10px;
+}
+
+.map-box pre{
+  margin:0;
+  white-space:pre-wrap;
+  word-break:break-word;
+  color:#b9c4d4;
+  font-size:11px;
+}
+
+.analyzer-actions{
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+
+.library-tools{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-bottom:10px;
+}
+
+.library-tools input{
+  flex:1;
+  min-width:200px;
+  border:1px solid var(--line);
+  background:#0c111a;
+  color:var(--text);
+  border-radius:10px;
+  padding:9px;
+}
+
+.notice{
+  padding:10px;
+  border:1px dashed var(--line);
+  border-radius:10px;
+  color:var(--muted);
+  font-size:12px;
+  margin-top:10px;
+}
 </style>
 </head>
 
@@ -180,35 +326,152 @@ audio{
   <div class="subtitle">Console</div>
 </header>
 
-<!-- =========================
+
+<!-- ======================================================
      CARTRIDGES
-========================= -->
+====================================================== -->
 
 <section class="section">
 
   <div class="section-title">CARTRIDGES</div>
 
   <div id="cartridges">
+
     <div class="empty">
       No cartridges loaded.
     </div>
+
   </div>
 
 </section>
 
 
-<!-- =========================
+<!-- ======================================================
      MUSIC
-========================= -->
+====================================================== -->
 
 <section class="section">
 
   <div class="section-title">MUSIC</div>
 
+  <div class="library-tools">
+
+    <input
+      id="musicSearch"
+      type="search"
+      placeholder="Search music..."
+      autocomplete="off"
+    >
+
+    <button id="reloadMusic">
+      ↻ Reload
+    </button>
+
+  </div>
+
   <div id="music">
+
     <div class="empty">
       Loading music library...
     </div>
+
+  </div>
+
+
+  <!-- ====================================================
+       ANALYZER
+  ===================================================== -->
+
+  <div id="analyzer" class="analyzer">
+
+    <div class="analyzer-title">
+      🔬 TAP MUSIC ANALYZER
+    </div>
+
+    <div id="analyzerTrack" class="small">
+      No track selected.
+    </div>
+
+    <div id="analyzerStatus" class="analyzer-status">
+      Ready.
+    </div>
+
+    <div class="stats">
+
+      <div class="stat">
+        <div class="stat-label">LENGTH</div>
+        <div id="statLength" class="stat-value">—</div>
+      </div>
+
+      <div class="stat">
+        <div class="stat-label">EST. BPM</div>
+        <div id="statBpm" class="stat-value">—</div>
+      </div>
+
+      <div class="stat">
+        <div class="stat-label">BEATS</div>
+        <div id="statBeats" class="stat-value">—</div>
+      </div>
+
+      <div class="stat">
+        <div class="stat-label">SECTIONS</div>
+        <div id="statSections" class="stat-value">—</div>
+      </div>
+
+    </div>
+
+
+    <div class="energy">
+
+      <div class="stat-label">
+        OVERALL ENERGY
+      </div>
+
+      <div class="energy-bar">
+        <div
+          id="energyFill"
+          class="energy-fill">
+        </div>
+      </div>
+
+      <div
+        id="energyText"
+        class="small"
+        style="margin-top:5px">
+        —
+      </div>
+
+    </div>
+
+
+    <div class="analyzer-actions">
+
+      <button
+        id="analyzeButton"
+        disabled>
+        🔬 Analyze
+      </button>
+
+      <button
+        id="exportButton"
+        disabled>
+        ↓ Export .tapmusic
+      </button>
+
+      <button
+        id="closeAnalyzer">
+        Close
+      </button>
+
+    </div>
+
+
+    <div class="map-box">
+
+      <pre id="mapOutput">No TAP Music map yet.</pre>
+
+    </div>
+
   </div>
 
 </section>
@@ -216,24 +479,34 @@ audio{
 </main>
 
 
-<!-- =========================
-     MUSIC PLAYER
-========================= -->
+<!-- ======================================================
+     PLAYER
+====================================================== -->
 
 <div class="player">
 
   <div class="player-inner">
 
     <div class="now">
-      <div class="now-icon">🎵</div>
-      <div id="nowPlaying" class="now-name">
+
+      <div class="now-icon">
+        🎵
+      </div>
+
+      <div
+        id="nowPlaying"
+        class="now-name">
         Nothing playing
       </div>
+
     </div>
+
 
     <div class="controls">
 
-      <button onclick="previousTrack()">◀</button>
+      <button onclick="previousTrack()">
+        ◀
+      </button>
 
       <button
         id="playButton"
@@ -242,13 +515,20 @@ audio{
         ▶
       </button>
 
-      <button onclick="nextTrack()">▶</button>
+      <button onclick="nextTrack()">
+        ▶
+      </button>
 
-      <button onclick="stopTrack()">■</button>
+      <button onclick="stopTrack()">
+        ■
+      </button>
 
     </div>
 
-    <audio id="audio" preload="metadata"></audio>
+    <audio
+      id="audio"
+      preload="metadata">
+    </audio>
 
   </div>
 
@@ -258,22 +538,59 @@ audio{
 <script>
 
 /* =========================================================
-   TAP MUSIC
+   TAP MUSIC CORE
 ========================================================= */
 
-const audio = document.getElementById("audio");
-const musicContainer = document.getElementById("music");
-const nowPlaying = document.getElementById("nowPlaying");
-const playButton = document.getElementById("playButton");
+const audio =
+  document.getElementById("audio");
+
+const musicContainer =
+  document.getElementById("music");
+
+const nowPlaying =
+  document.getElementById("nowPlaying");
+
+const playButton =
+  document.getElementById("playButton");
+
+const analyzer =
+  document.getElementById("analyzer");
+
+const analyzerTrack =
+  document.getElementById("analyzerTrack");
+
+const analyzerStatus =
+  document.getElementById("analyzerStatus");
+
+const analyzeButton =
+  document.getElementById("analyzeButton");
+
+const exportButton =
+  document.getElementById("exportButton");
+
+const mapOutput =
+  document.getElementById("mapOutput");
 
 let musicTracks = [];
+
 let currentTrack = -1;
 
+let selectedAnalysisTrack = -1;
 
-/* ---------------------------------------------------------
+let currentMusicMap = null;
+
+
+/* =========================================================
+   SUPPORTED AUDIO
+========================================================= */
+
+const AUDIO_EXTENSIONS =
+  /\.(mp3|wav|m4a|aac|ogg|flac|mp4)$/i;
+
+
+/* =========================================================
    MUSIC MANIFEST
-
-   Create:
+=========================================================
 
    /music/manifest.json
 
@@ -284,57 +601,99 @@ let currentTrack = -1;
      "storm-run.mp3",
      "night-drive.mp3"
    ]
---------------------------------------------------------- */
+
+========================================================= */
 
 async function loadMusic(){
+
+  musicContainer.innerHTML =
+    `<div class="empty">
+      Loading music library...
+    </div>`;
 
   try{
 
     const response =
-      await fetch("music/manifest.json", {
-        cache:"no-store"
-      });
+      await fetch(
+        "music/manifest.json",
+        {
+          cache:"no-store"
+        }
+      );
 
     if(!response.ok)
-      throw new Error("No manifest");
+      throw new Error("Manifest not found");
 
-    const names = await response.json();
+    const names =
+      await response.json();
 
     if(!Array.isArray(names))
       throw new Error("Invalid manifest");
 
-    musicTracks = names
-      .filter(name => typeof name === "string")
-      .map(name => ({
-        name:name,
-        url:"music/" + encodeURIComponent(name)
-      }));
+    musicTracks =
+      names
+
+        .filter(
+          name =>
+            typeof name === "string"
+        )
+
+        .filter(
+          name =>
+            AUDIO_EXTENSIONS.test(name)
+        )
+
+        .map(name => ({
+
+          name:name,
+
+          url:
+            "music/" +
+            encodeURIComponent(name)
+
+        }));
 
     renderMusic();
 
-  }catch(error){
+  }
+
+  catch(error){
+
+    musicTracks = [];
 
     musicContainer.innerHTML = `
-      <div class="empty">
-        No music loaded.<br><br>
 
-        Add your songs to:
+      <div class="empty">
+
+        No music loaded.
+
+        <br><br>
+
+        Put your songs in:
+
         <b>/music/</b>
 
         <br><br>
 
         Then create:
+
         <b>/music/manifest.json</b>
 
         <br><br>
 
         Example:
+
         <br><br>
 
         <code>
-        ["song1.mp3","song2.mp3"]
+        [
+          "my-song.mp3",
+          "storm-run.mp3"
+        ]
         </code>
+
       </div>
+
     `;
 
   }
@@ -342,100 +701,206 @@ async function loadMusic(){
 }
 
 
-/* ---------------------------------------------------------
-   DISPLAY MUSIC
---------------------------------------------------------- */
+/* =========================================================
+   MUSIC DISPLAY
+========================================================= */
 
 function renderMusic(){
 
-  if(!musicTracks.length){
+  const search =
+    document
+      .getElementById("musicSearch")
+      .value
+      .toLowerCase()
+      .trim();
+
+  const visible =
+    musicTracks.filter(track =>
+      cleanName(track.name)
+        .toLowerCase()
+        .includes(search)
+    );
+
+
+  if(!visible.length){
 
     musicContainer.innerHTML =
       `<div class="empty">
-        No songs in library.
+        No matching songs.
       </div>`;
 
     return;
+
   }
+
 
   musicContainer.innerHTML = "";
 
-  musicTracks.forEach((track,index)=>{
 
-    const button =
-      document.createElement("button");
+  visible.forEach(track => {
 
-    button.className = "item";
+    const realIndex =
+      musicTracks.indexOf(track);
 
-    button.innerHTML = `
-      <span class="icon">🎵</span>
 
-      <span>
-        <div class="name"></div>
-        <div class="meta">
-          TAP Music Track ${index + 1}
-        </div>
+    const row =
+      document.createElement("div");
+
+    row.className =
+      "item" +
+      (
+        realIndex === currentTrack
+          ? " active"
+          : ""
+      );
+
+
+    row.innerHTML = `
+
+      <span class="icon">
+        🎵
       </span>
+
+      <span class="track-info">
+
+        <div class="name"></div>
+
+        <div class="meta">
+          TAP Music Track
+          ${realIndex + 1}
+        </div>
+
+      </span>
+
+      <span class="track-actions">
+
+        <button
+          class="playTrackButton">
+          ▶
+        </button>
+
+        <button
+          class="analyzeTrackButton">
+          🔬
+        </button>
+
+      </span>
+
     `;
 
-    button.querySelector(".name")
+
+    row.querySelector(".name")
       .textContent =
       cleanName(track.name);
 
-    button.onclick =
-      () => playTrack(index);
 
-    musicContainer.appendChild(button);
+    row.querySelector(".playTrackButton")
+      .onclick =
+      event => {
+
+        event.stopPropagation();
+
+        playTrack(realIndex);
+
+      };
+
+
+    row.querySelector(".analyzeTrackButton")
+      .onclick =
+      event => {
+
+        event.stopPropagation();
+
+        openAnalyzer(realIndex);
+
+      };
+
+
+    row.onclick =
+      () => playTrack(realIndex);
+
+
+    musicContainer.appendChild(row);
 
   });
 
 }
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    CLEAN FILE NAME
---------------------------------------------------------- */
+========================================================= */
 
 function cleanName(name){
 
   return name
-    .replace(/\.[^/.]+$/,"")
-    .replace(/[_-]+/g," ")
-    .replace(/\s+/g," ")
+
+    .replace(
+      /\.[^/.]+$/,
+      ""
+    )
+
+    .replace(
+      /[_-]+/g,
+      " "
+    )
+
+    .replace(
+      /\s+/g,
+      " "
+    )
+
     .trim();
 
 }
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    PLAY TRACK
---------------------------------------------------------- */
+========================================================= */
 
 function playTrack(index){
 
-  if(index < 0 || index >= musicTracks.length)
+  if(
+    index < 0 ||
+    index >= musicTracks.length
+  )
     return;
+
 
   currentTrack = index;
 
-  const track = musicTracks[index];
 
-  audio.src = track.url;
+  const track =
+    musicTracks[index];
+
+
+  audio.src =
+    track.url;
+
 
   nowPlaying.textContent =
     cleanName(track.name);
 
+
   audio.play()
-    .catch(error=>{
-      console.log("Playback requires user interaction.");
-    });
+    .catch(
+      error =>
+        console.log(
+          "Playback requires user interaction.",
+          error
+        )
+    );
+
+
+  renderMusic();
 
 }
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    PLAY / PAUSE
---------------------------------------------------------- */
+========================================================= */
 
 function togglePlay(){
 
@@ -448,13 +913,17 @@ function togglePlay(){
     }
 
     return;
+
   }
+
 
   if(audio.paused){
 
     audio.play();
 
-  }else{
+  }
+
+  else{
 
     audio.pause();
 
@@ -463,49 +932,56 @@ function togglePlay(){
 }
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    NEXT
---------------------------------------------------------- */
+========================================================= */
 
 function nextTrack(){
 
   if(!musicTracks.length)
     return;
 
+
   let next =
     currentTrack + 1;
 
+
   if(next >= musicTracks.length)
     next = 0;
+
 
   playTrack(next);
 
 }
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    PREVIOUS
---------------------------------------------------------- */
+========================================================= */
 
 function previousTrack(){
 
   if(!musicTracks.length)
     return;
 
+
   let previous =
     currentTrack - 1;
 
+
   if(previous < 0)
-    previous = musicTracks.length - 1;
+    previous =
+      musicTracks.length - 1;
+
 
   playTrack(previous);
 
 }
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    STOP
---------------------------------------------------------- */
+========================================================= */
 
 function stopTrack(){
 
@@ -516,82 +992,1169 @@ function stopTrack(){
 }
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    PLAYER STATE
---------------------------------------------------------- */
+========================================================= */
 
 audio.addEventListener(
   "play",
-  ()=>{
-    playButton.textContent = "Ⅱ";
+  () => {
+
+    playButton.textContent =
+      "Ⅱ";
+
   }
 );
+
 
 audio.addEventListener(
   "pause",
-  ()=>{
-    playButton.textContent = "▶";
+  () => {
+
+    playButton.textContent =
+      "▶";
+
   }
 );
 
+
 audio.addEventListener(
   "ended",
-  ()=>{
+  () => {
+
     nextTrack();
+
   }
 );
 
 
 /* =========================================================
-   CARTRIDGE LOADER
-=========================================================
-
-   This is intentionally kept separate from TAP Music.
-
-   Your existing cartridge system can populate:
-
-   #cartridges
-
-   without changing the music system.
+   ANALYZER UI
 ========================================================= */
 
+function openAnalyzer(index){
 
-/* Example cartridge API */
+  if(
+    index < 0 ||
+    index >= musicTracks.length
+  )
+    return;
 
-function registerCartridge(name,description,launch){
+
+  selectedAnalysisTrack =
+    index;
+
+
+  const track =
+    musicTracks[index];
+
+
+  analyzer.classList.add("open");
+
+
+  analyzerTrack.textContent =
+    cleanName(track.name);
+
+
+  analyzerStatus.textContent =
+    "Ready to analyze.";
+
+
+  analyzeButton.disabled =
+    false;
+
+
+  exportButton.disabled =
+    true;
+
+
+  currentMusicMap =
+    null;
+
+
+  mapOutput.textContent =
+    "No TAP Music map yet.";
+
+
+  document.getElementById(
+    "statLength"
+  ).textContent = "—";
+
+
+  document.getElementById(
+    "statBpm"
+  ).textContent = "—";
+
+
+  document.getElementById(
+    "statBeats"
+  ).textContent = "—";
+
+
+  document.getElementById(
+    "statSections"
+  ).textContent = "—";
+
+
+  document.getElementById(
+    "energyFill"
+  ).style.width = "0%";
+
+
+  document.getElementById(
+    "energyText"
+  ).textContent = "—";
+
+}
+
+
+document.getElementById(
+  "closeAnalyzer"
+).onclick = () => {
+
+  analyzer.classList.remove("open");
+
+};
+
+
+/* =========================================================
+   AUDIO ANALYSIS
+========================================================= */
+
+function rmsAt(
+  data,
+  start,
+  end
+){
+
+  let sum = 0;
+
+  let count = 0;
+
+
+  const span =
+    Math.max(
+      1,
+      end - start
+    );
+
+
+  const step =
+    Math.max(
+      1,
+      Math.floor(
+        span / 2000
+      )
+    );
+
+
+  for(
+    let i = start;
+    i < end;
+    i += step
+  ){
+
+    const value =
+      data[i] || 0;
+
+
+    sum +=
+      value * value;
+
+
+    count++;
+
+  }
+
+
+  return count
+    ? Math.sqrt(
+        sum / count
+      )
+    : 0;
+
+}
+
+
+/* =========================================================
+   ANALYZE BUFFER
+========================================================= */
+
+function analyzeAudioBuffer(buffer){
+
+  const sampleRate =
+    buffer.sampleRate;
+
+  const channels =
+    buffer.numberOfChannels;
+
+  const length =
+    buffer.length;
+
+
+  /* -----------------------------------------
+     Convert to mono
+  ----------------------------------------- */
+
+  const mono =
+    new Float32Array(length);
+
+
+  for(
+    let channel = 0;
+    channel < channels;
+    channel++
+  ){
+
+    const data =
+      buffer.getChannelData(
+        channel
+      );
+
+
+    for(
+      let i = 0;
+      i < length;
+      i++
+    ){
+
+      mono[i] +=
+        data[i] /
+        channels;
+
+    }
+
+  }
+
+
+  /* -----------------------------------------
+     Downsample
+  ----------------------------------------- */
+
+  const targetRate =
+    11025;
+
+
+  const step =
+    Math.max(
+      1,
+      Math.floor(
+        sampleRate /
+        targetRate
+      )
+    );
+
+
+  const x = [];
+
+
+  for(
+    let i = 0;
+    i < length;
+    i += step
+  ){
+
+    x.push(
+      mono[i]
+    );
+
+  }
+
+
+  const analysisRate =
+    sampleRate / step;
+
+
+  /* -----------------------------------------
+     Energy envelope
+  ----------------------------------------- */
+
+  const hop =
+    Math.floor(
+      analysisRate * .05
+    );
+
+
+  const window =
+    Math.floor(
+      analysisRate * .08
+    );
+
+
+  const envelope = [];
+
+
+  for(
+    let position = 0;
+    position + window < x.length;
+    position += hop
+  ){
+
+    envelope.push(
+      rmsAt(
+        x,
+        position,
+        position + window
+      )
+    );
+
+  }
+
+
+  const mean =
+    envelope.reduce(
+      (a,b) => a + b,
+      0
+    ) /
+    Math.max(
+      1,
+      envelope.length
+    );
+
+
+  const variance =
+    envelope.reduce(
+      (a,b) =>
+        a +
+        Math.pow(
+          b - mean,
+          2
+        ),
+      0
+    ) /
+    Math.max(
+      1,
+      envelope.length
+    );
+
+
+  const standardDeviation =
+    Math.sqrt(
+      variance
+    ) || 1;
+
+
+  const normalized =
+    envelope.map(
+      value =>
+        (
+          value - mean
+        ) /
+        standardDeviation
+    );
+
+
+  /* -----------------------------------------
+     BPM estimate
+  ----------------------------------------- */
+
+  const minBpm = 70;
+  const maxBpm = 180;
+
+
+  let bestBpm = 120;
+
+  let bestScore =
+    -Infinity;
+
+
+  for(
+    let bpm = minBpm;
+    bpm <= maxBpm;
+    bpm++
+  ){
+
+    const lag =
+      Math.max(
+        1,
+        Math.round(
+          (
+            60 / bpm
+          ) /
+          (
+            hop /
+            analysisRate
+          )
+        )
+      );
+
+
+    let score = 0;
+
+    let count = 0;
+
+
+    for(
+      let i = lag;
+      i < normalized.length;
+      i++
+    ){
+
+      const current =
+        Math.max(
+          0,
+          normalized[i]
+        );
+
+
+      const previous =
+        Math.max(
+          0,
+          normalized[
+            i - lag
+          ]
+        );
+
+
+      score +=
+        current *
+        previous;
+
+
+      count++;
+
+    }
+
+
+    score /=
+      count || 1;
+
+
+    if(
+      score >
+      bestScore
+    ){
+
+      bestScore =
+        score;
+
+      bestBpm =
+        bpm;
+
+    }
+
+  }
+
+
+  /* -----------------------------------------
+     Beat map
+  ----------------------------------------- */
+
+  const beatPeriod =
+    60 /
+    bestBpm;
+
+
+  const beatCount =
+    Math.max(
+      1,
+      Math.floor(
+        buffer.duration /
+        beatPeriod
+      )
+    );
+
+
+  const beats = [];
+
+
+  for(
+    let i = 0;
+    i < beatCount;
+    i++
+  ){
+
+    beats.push(
+      Number(
+        (
+          i *
+          beatPeriod
+        ).toFixed(3)
+      )
+    );
+
+  }
+
+
+  /* -----------------------------------------
+     Coarse sections
+  ----------------------------------------- */
+
+  const sectionCount =
+    Math.min(
+      8,
+      Math.max(
+        1,
+        Math.ceil(
+          buffer.duration /
+          30
+        )
+      )
+    );
+
+
+  const sections = [];
+
+
+  for(
+    let section = 0;
+    section < sectionCount;
+    section++
+  ){
+
+    const startIndex =
+      Math.floor(
+        (
+          section /
+          sectionCount
+        ) *
+        envelope.length
+      );
+
+
+    const endIndex =
+      Math.floor(
+        (
+          (section + 1) /
+          sectionCount
+        ) *
+        envelope.length
+      );
+
+
+    const values =
+      envelope.slice(
+        startIndex,
+        endIndex
+      );
+
+
+    const average =
+      values.reduce(
+        (a,b) => a + b,
+        0
+      ) /
+      Math.max(
+        1,
+        values.length
+      );
+
+
+    let id =
+      "section_" +
+      section;
+
+
+    if(section === 0)
+      id = "intro";
+
+
+    if(
+      section ===
+      sectionCount - 1
+    )
+      id = "outro";
+
+
+    sections.push({
+
+      id:id,
+
+      start:Number(
+        (
+          section *
+          buffer.duration /
+          sectionCount
+        ).toFixed(3)
+      ),
+
+      end:Number(
+        (
+          (section + 1) *
+          buffer.duration /
+          sectionCount
+        ).toFixed(3)
+      ),
+
+      energy:Number(
+        average.toFixed(5)
+      )
+
+    });
+
+  }
+
+
+  /* -----------------------------------------
+     Energy
+  ----------------------------------------- */
+
+  const overall =
+    Math.min(
+      100,
+      Math.round(
+        (
+          mean /
+          (
+            mean +
+            0.08
+          )
+        ) *
+        100
+      )
+    );
+
+
+  const sectionEnergies =
+    sections.map(
+      section =>
+        section.energy
+    );
+
+
+  const maximum =
+    Math.max(
+      ...sectionEnergies
+    );
+
+
+  const minimum =
+    Math.min(
+      ...sectionEnergies
+    );
+
+
+  const contrast =
+    maximum /
+    (
+      minimum ||
+      1
+    );
+
+
+  let profile =
+    "STEADY";
+
+
+  if(
+    contrast >
+    1.8
+  ){
+
+    profile =
+      "HIGH CONTRAST";
+
+  }
+
+  else if(
+    contrast >
+    1.25
+  ){
+
+    profile =
+      "DYNAMIC";
+
+  }
+
+
+  return {
+
+    format:
+      "TAPMUSIC",
+
+    version:
+      1,
+
+    track:{
+      id:
+        cleanName(
+          musicTracks[
+            selectedAnalysisTrack
+          ].name
+        ),
+
+      file:
+        musicTracks[
+          selectedAnalysisTrack
+        ].name,
+
+      duration:
+        Number(
+          buffer.duration.toFixed(3)
+        )
+
+    },
+
+    bpm:
+      bestBpm,
+
+    beats:
+      beats,
+
+    sections:
+      sections,
+
+    energy:{
+
+      overall:
+        overall,
+
+      profile:
+        profile
+
+    }
+
+  };
+
+}
+
+
+/* =========================================================
+   ANALYZE BUTTON
+========================================================= */
+
+analyzeButton.onclick =
+async function(){
+
+  if(
+    selectedAnalysisTrack < 0
+  )
+    return;
+
+
+  const track =
+    musicTracks[
+      selectedAnalysisTrack
+    ];
+
+
+  analyzeButton.disabled =
+    true;
+
+
+  exportButton.disabled =
+    true;
+
+
+  analyzerStatus.textContent =
+    "Loading audio…";
+
+
+  try{
+
+    const response =
+      await fetch(
+        track.url
+      );
+
+
+    if(!response.ok)
+      throw new Error(
+        "Could not load song."
+      );
+
+
+    const arrayBuffer =
+      await response.arrayBuffer();
+
+
+    const AudioContext =
+      window.AudioContext ||
+      window.webkitAudioContext;
+
+
+    if(!AudioContext)
+      throw new Error(
+        "Audio analysis is not supported by this browser."
+      );
+
+
+    const context =
+      new AudioContext();
+
+
+    analyzerStatus.textContent =
+      "Decoding audio…";
+
+
+    const audioBuffer =
+      await context.decodeAudioData(
+        arrayBuffer
+      );
+
+
+    analyzerStatus.textContent =
+      "Analyzing beat and energy structure…";
+
+
+    currentMusicMap =
+      analyzeAudioBuffer(
+        audioBuffer
+      );
+
+
+    document.getElementById(
+      "statLength"
+    ).textContent =
+      formatTime(
+        currentMusicMap.track.duration
+      );
+
+
+    document.getElementById(
+      "statBpm"
+    ).textContent =
+      currentMusicMap.bpm;
+
+
+    document.getElementById(
+      "statBeats"
+    ).textContent =
+      currentMusicMap.beats.length;
+
+
+    document.getElementById(
+      "statSections"
+    ).textContent =
+      currentMusicMap.sections.length;
+
+
+    document.getElementById(
+      "energyFill"
+    ).style.width =
+      currentMusicMap.energy.overall +
+      "%";
+
+
+    document.getElementById(
+      "energyText"
+    ).textContent =
+      currentMusicMap.energy.profile +
+      " · " +
+      currentMusicMap.energy.overall +
+      "/100";
+
+
+    mapOutput.textContent =
+      JSON.stringify(
+        currentMusicMap,
+        null,
+        2
+      );
+
+
+    analyzerStatus.textContent =
+      "Analysis complete.";
+
+
+    exportButton.disabled =
+      false;
+
+
+    await context.close();
+
+  }
+
+  catch(error){
+
+    analyzerStatus.textContent =
+      "Analysis failed: " +
+      error.message;
+
+    mapOutput.textContent =
+      "TAP Music could not decode this file.\n\n" +
+      "The browser may not support this audio codec.";
+
+  }
+
+  finally{
+
+    analyzeButton.disabled =
+      false;
+
+  }
+
+};
+
+
+/* =========================================================
+   EXPORT .TAPMUSIC
+========================================================= */
+
+exportButton.onclick =
+function(){
+
+  if(!currentMusicMap)
+    return;
+
+
+  const blob =
+    new Blob(
+      [
+        JSON.stringify(
+          currentMusicMap,
+          null,
+          2
+        )
+      ],
+      {
+        type:
+          "application/json"
+      }
+    );
+
+
+  const url =
+    URL.createObjectURL(
+      blob
+    );
+
+
+  const link =
+    document.createElement(
+      "a"
+    );
+
+
+  link.href = url;
+
+
+  const baseName =
+    cleanName(
+      currentMusicMap.track.file
+    )
+    .replace(/\s+/g,"_");
+
+
+  link.download =
+    baseName +
+    ".tapmusic";
+
+
+  document.body.appendChild(
+    link
+  );
+
+
+  link.click();
+
+
+  link.remove();
+
+
+  setTimeout(
+    () =>
+      URL.revokeObjectURL(url),
+    1000
+  );
+
+};
+
+
+/* =========================================================
+   FORMAT TIME
+========================================================= */
+
+function formatTime(seconds){
+
+  if(
+    !Number.isFinite(
+      seconds
+    )
+  )
+    return "—";
+
+
+  const minutes =
+    Math.floor(
+      seconds / 60
+    );
+
+
+  const remaining =
+    Math.floor(
+      seconds % 60
+    )
+    .toString()
+    .padStart(
+      2,
+      "0"
+    );
+
+
+  return (
+    minutes +
+    ":" +
+    remaining
+  );
+
+}
+
+
+/* =========================================================
+   MUSIC SEARCH
+========================================================= */
+
+document.getElementById(
+  "musicSearch"
+).addEventListener(
+  "input",
+  renderMusic
+);
+
+
+document.getElementById(
+  "reloadMusic"
+).onclick =
+loadMusic;
+
+
+/* =========================================================
+   TAP MUSIC API
+=========================================================
+
+   This gives future cartridges a simple way to interact
+   with TAP Music.
+
+========================================================= */
+
+window.tapMusic = {
+
+  tracks:
+    musicTracks,
+
+  getCurrentTrack:
+    function(){
+
+      if(
+        currentTrack < 0
+      )
+        return null;
+
+      return musicTracks[
+        currentTrack
+      ] || null;
+
+    },
+
+  play:
+    function(index){
+
+      playTrack(index);
+
+    },
+
+  pause:
+    function(){
+
+      audio.pause();
+
+    },
+
+  stop:
+    function(){
+
+      stopTrack();
+
+    },
+
+  next:
+    function(){
+
+      nextTrack();
+
+    },
+
+  previous:
+    function(){
+
+      previousTrack();
+
+    },
+
+  getAnalysis:
+    function(){
+
+      return currentMusicMap;
+
+    }
+
+};
+
+
+/* =========================================================
+   CARTRIDGE LOADER
+========================================================= */
+
+function registerCartridge(
+  name,
+  description,
+  launch
+){
 
   const container =
-    document.getElementById("cartridges");
+    document.getElementById(
+      "cartridges"
+    );
+
 
   const empty =
-    container.querySelector(".empty");
+    container.querySelector(
+      ".empty"
+    );
+
 
   if(empty)
     empty.remove();
 
-  const button =
-    document.createElement("button");
 
-  button.className = "item";
+  const button =
+    document.createElement(
+      "button"
+    );
+
+
+  button.className =
+    "item";
+
 
   button.innerHTML = `
-    <span class="icon">🎮</span>
 
-    <span>
-      <div class="name"></div>
-      <div class="meta"></div>
+    <span class="icon">
+      🎮
     </span>
+
+    <span class="track-info">
+
+      <div class="name"></div>
+
+      <div class="meta"></div>
+
+    </span>
+
   `;
 
-  button.querySelector(".name")
-    .textContent = name;
 
-  button.querySelector(".meta")
-    .textContent = description || "TAP Cartridge";
+  button.querySelector(
+    ".name"
+  ).textContent =
+    name;
 
-  button.onclick = launch;
 
-  container.appendChild(button);
+  button.querySelector(
+    ".meta"
+  ).textContent =
+    description ||
+    "TAP Cartridge";
+
+
+  button.onclick =
+    launch;
+
+
+  container.appendChild(
+    button
+  );
 
 }
 
